@@ -21,7 +21,12 @@ export const getResource = async (req, res, next) => {
 
     if (isSingletonKey(resource)) {
       const doc = await Singleton.findOne({ key: resource });
-      return res.status(200).json(doc ? doc.data : null);
+      // A resource added to the schema after the DB was last seeded (e.g.
+      // reviewSection) has no row yet — fall back to its seed default
+      // instead of null, so admin editors don't get stuck on their
+      // "Loading..." spinner forever waiting for a form that never arrives.
+      if (doc) return res.status(200).json(doc.data);
+      return res.status(200).json(RESOURCE_SEED_DATA[resource] ?? null);
     }
 
     const docs = await ListItem.find({ key: resource }).sort({ 'data.order': 1, createdAt: 1 });
